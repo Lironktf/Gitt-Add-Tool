@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Interactive Git Add Tool
-# Usage: gitt add
+# Usage: gitt
 
 set -e
 
@@ -16,8 +16,8 @@ BOLD='\033[1m'
 
 # Function to show usage
 show_usage() {
-    echo "Usage: gitt add"
-    echo "  Interactively select files to stage"
+    echo "Usage: gitt"
+    echo "  Interactively select files to stage and commit"
     exit 1
 }
 
@@ -314,11 +314,6 @@ prompt_commit() {
 
 # Main function
 main() {
-    # Check arguments
-    if [ $# -eq 0 ] || [ "$1" != "add" ]; then
-        show_usage
-    fi
-
     # Check if in git repo
     check_git_repo
 

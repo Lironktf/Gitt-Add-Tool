@@ -42,7 +42,7 @@ An interactive command-line tool that makes staging files in Git easier and more
 Navigate to any Git repository and run:
 
 ```bash
-gitt add
+gitt
 ```
 
 ### Controls
