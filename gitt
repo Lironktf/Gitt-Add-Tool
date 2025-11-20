@@ -96,9 +96,15 @@ draw_menu() {
         echo -e "${prefix}${checkbox} ${file_colors[$i]}${file_statuses[$i]:0:1}${NC} ${file_names[$i]}"
     done
 
-    # Print confirm option
+    # Print select all and confirm options
     echo ""
     if [ $current -eq $total_files ]; then
+        echo -e "${BOLD}→ ${BLUE}[Select All]${NC}"
+    else
+        echo -e "  ${BLUE}[Select All]${NC}"
+    fi
+
+    if [ $current -eq $((total_files + 1)) ]; then
         echo -e "${BOLD}→ ${GREEN}[Confirm and stage selected files]${NC}"
     else
         echo -e "  ${GREEN}[Confirm and stage selected files]${NC}"
@@ -129,12 +135,12 @@ interactive_select() {
                 '[A') # Up arrow
                     ((current--))
                     if [ $current -lt 0 ]; then
-                        current=$total_files
+                        current=$((total_files + 1))
                     fi
                     ;;
                 '[B') # Down arrow
                     ((current++))
-                    if [ $current -gt $total_files ]; then
+                    if [ $current -gt $((total_files + 1)) ]; then
                         current=0
                     fi
                     ;;
@@ -142,6 +148,11 @@ interactive_select() {
         elif [[ $key == "" ]]; then
             # Enter key
             if [ $current -eq $total_files ]; then
+                # On "Select All" - select all files
+                for ((i=0; i<total_files; i++)); do
+                    selected[$i]=1
+                done
+            elif [ $current -eq $((total_files + 1)) ]; then
                 # On confirm button - stage files
                 break
             else
@@ -187,6 +198,44 @@ stage_files() {
     echo -e "\n${GREEN}Successfully staged $staged_count file(s)!${NC}"
 }
 
+# Prompt for commit
+prompt_commit() {
+    echo ""
+    echo -e "${BOLD}${BLUE}Would you like to commit these changes?${NC}"
+    echo -e "${CYAN}1) Yes - Enter commit message${NC}"
+    echo -e "${CYAN}2) No - Exit (files are staged)${NC}"
+    echo ""
+
+    while true; do
+        read -p "Select option (1 or 2): " choice
+        case $choice in
+            1)
+                echo ""
+                echo -e "${BOLD}Enter commit message:${NC}"
+                read -e commit_message
+
+                if [ -z "$commit_message" ]; then
+                    echo -e "${RED}Commit message cannot be empty. Skipping commit.${NC}"
+                    return
+                fi
+
+                echo ""
+                echo -e "${BOLD}Committing changes...${NC}"
+                git commit -m "$commit_message"
+                echo -e "${GREEN}Successfully committed!${NC}"
+                return
+                ;;
+            2)
+                echo -e "${YELLOW}Skipping commit. Files are staged and ready.${NC}"
+                return
+                ;;
+            *)
+                echo -e "${RED}Invalid option. Please select 1 or 2.${NC}"
+                ;;
+        esac
+    done
+}
+
 # Main function
 main() {
     # Check arguments
@@ -217,6 +266,9 @@ main() {
 
     # Stage selected files
     stage_files
+
+    # Prompt for commit
+    prompt_commit
 }
 
 # Run main function

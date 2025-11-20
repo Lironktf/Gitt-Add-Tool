@@ -6,9 +6,11 @@ An interactive command-line tool that makes staging files in Git easier and more
 
 - **Interactive checkbox interface** - Visual selection of files to stage
 - **Keyboard navigation** - Arrow keys to navigate, Enter to select
+- **Select All option** - Quickly select all files with one action
+- **Commit integration** - Optionally commit after staging with custom message
 - **Color-coded status** - Different colors for modified vs new files
 - **Clean display** - See all unstaged changes at a glance
-- **Simple workflow** - Select files, confirm, done
+- **Simple workflow** - Select files, stage, and commit in one flow
 
 ## Installation
 
@@ -54,11 +56,12 @@ gitt add
 
 ### Controls
 
-- **↑/↓ Arrow Keys** - Navigate through files
-- **Enter** - Select/deselect a file (toggle checkbox)
-- **Enter on Confirm** - Stage all selected files
+- **↑/↓ Arrow Keys** - Navigate through files and menu options
+- **Enter on a file** - Select/deselect that file (toggle checkbox)
+- **Enter on Select All** - Select all files at once
+- **Enter on Confirm** - Stage selected files and proceed to commit prompt
 
-### Example
+### Workflow Example
 
 ```
 === Interactive Git Add ===
@@ -68,10 +71,22 @@ Use ↑/↓ arrows to navigate, Enter to select/deselect
 → [ ] N src/utils.js
   [✓] M README.md
 
+  [Select All]
   [Confirm and stage selected files]
 ```
 
-In this example:
+After selecting files and confirming:
+```
+Successfully staged 2 file(s)!
+
+Would you like to commit these changes?
+1) Yes - Enter commit message
+2) No - Exit (files are staged)
+
+Select option (1 or 2):
+```
+
+Status indicators:
 - `M` = Modified file (shown in yellow)
 - `N` = New untracked file (shown in green)
 - `✓` = File is selected to be staged
@@ -96,6 +111,8 @@ The tool does NOT show:
 
 The standard `git add` command requires you to type out file paths or use `git add -p` for interactive staging, which can be cumbersome. `gitt` provides a visual, checkbox-style interface that makes it easy to see all your changes and select exactly what you want to stage.
 
+Additionally, `gitt` streamlines the commit workflow by optionally prompting for a commit message right after staging, eliminating the need to run separate `git add` and `git commit` commands.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -107,4 +124,3 @@ MIT License - see LICENSE file for details
 ## Author
 
 Created by Liron Katsif
-# Gitt-Add-Tool
