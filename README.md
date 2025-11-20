@@ -14,8 +14,6 @@ An interactive command-line tool that makes staging files in Git easier and more
 
 ## Installation
 
-### Manual Installation
-
 1. Clone or download this repository:
    ```bash
    git clone https://github.com/YOUR_USERNAME/gitt.git
@@ -38,13 +36,6 @@ An interactive command-line tool that makes staging files in Git easier and more
    # Option 2: System-wide (requires sudo)
    sudo mv gitt /usr/local/bin/
    ```
-
-### Homebrew (Coming Soon)
-
-```bash
-brew tap YOUR_USERNAME/gitt
-brew install gitt
-```
 
 ## Usage
 
