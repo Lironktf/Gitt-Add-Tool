@@ -1,0 +1,223 @@
+#!/bin/bash
+
+# Interactive Git Add Tool
+# Usage: gitt add
+
+set -e
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Function to show usage
+show_usage() {
+    echo "Usage: gitt add"
+    echo "  Interactively select files to stage"
+    exit 1
+}
+
+# Check if we're in a git repository
+check_git_repo() {
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo -e "${RED}Error: Not a git repository${NC}"
+        exit 1
+    fi
+}
+
+# Get all changed files with their status
+get_changed_files() {
+    # Get modified tracked files (exclude deleted)
+    git diff --name-status HEAD 2>/dev/null | grep -v '^D' || git diff --name-status --cached 2>/dev/null | grep -v '^D' || true
+    # Get untracked files
+    git ls-files --others --exclude-standard | sed 's/^/A\t/'
+}
+
+# Parse git status into arrays
+parse_git_status() {
+    local i=0
+    while IFS=$'\t' read -r status file; do
+        # Skip deleted and staged files
+        if [[ "$status" == "D" || "$status" == "S" ]]; then
+            continue
+        fi
+
+        case "$status" in
+            M)  file_statuses[$i]="Modified"
+                file_colors[$i]="$YELLOW"
+                ;;
+            A)  file_statuses[$i]="New file"
+                file_colors[$i]="$GREEN"
+                ;;
+            *)  file_statuses[$i]="Modified"
+                file_colors[$i]="$YELLOW"
+                ;;
+        esac
+        file_names[$i]="$file"
+        selected[$i]=0
+        ((i++))
+    done < <(get_changed_files | sort -u -k2)
+
+    total_files=$i
+}
+
+# Draw the menu
+draw_menu() {
+    local current=$1
+
+    # Clear screen
+    clear
+
+    # Print header
+    echo -e "${BOLD}${BLUE}=== Interactive Git Add ===${NC}"
+    echo -e "${CYAN}Use ↑/↓ arrows to navigate, Enter to select/deselect${NC}"
+    echo ""
+
+    # Print file list
+    for ((i=0; i<total_files; i++)); do
+        local prefix="  "
+        local checkbox="[ ]"
+
+        # Check if selected
+        if [ "${selected[$i]}" -eq 1 ]; then
+            checkbox="[${GREEN}✓${NC}]"
+        fi
+
+        # Check if current line
+        if [ $i -eq $current ]; then
+            prefix="${BOLD}→${NC} "
+        fi
+
+        # Print line
+        echo -e "${prefix}${checkbox} ${file_colors[$i]}${file_statuses[$i]:0:1}${NC} ${file_names[$i]}"
+    done
+
+    # Print confirm option
+    echo ""
+    if [ $current -eq $total_files ]; then
+        echo -e "${BOLD}→ ${GREEN}[Confirm and stage selected files]${NC}"
+    else
+        echo -e "  ${GREEN}[Confirm and stage selected files]${NC}"
+    fi
+}
+
+# Main interactive loop
+interactive_select() {
+    local current=0
+    local key
+
+    # Hide cursor
+    tput civis
+
+    # Trap to restore cursor on exit
+    trap 'tput cnorm; exit' INT TERM EXIT
+
+    while true; do
+        draw_menu $current
+
+        # Read single character
+        IFS= read -rsn1 key
+
+        # Handle arrow keys (they send multiple characters)
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 key
+            case "$key" in
+                '[A') # Up arrow
+                    ((current--))
+                    if [ $current -lt 0 ]; then
+                        current=$total_files
+                    fi
+                    ;;
+                '[B') # Down arrow
+                    ((current++))
+                    if [ $current -gt $total_files ]; then
+                        current=0
+                    fi
+                    ;;
+            esac
+        elif [[ $key == "" ]]; then
+            # Enter key
+            if [ $current -eq $total_files ]; then
+                # On confirm button - stage files
+                break
+            else
+                # On a file - toggle selection
+                if [ "${selected[$current]}" -eq 0 ]; then
+                    selected[$current]=1
+                else
+                    selected[$current]=0
+                fi
+            fi
+        fi
+    done
+
+    # Restore cursor
+    tput cnorm
+    trap - INT TERM EXIT
+}
+
+# Stage selected files
+stage_files() {
+    local staged_count=0
+    local files_to_add=()
+
+    for ((i=0; i<total_files; i++)); do
+        if [ "${selected[$i]}" -eq 1 ]; then
+            files_to_add+=("${file_names[$i]}")
+            ((staged_count++))
+        fi
+    done
+
+    if [ $staged_count -eq 0 ]; then
+        echo -e "\n${YELLOW}No files selected. Nothing to stage.${NC}"
+        exit 0
+    fi
+
+    echo -e "\n${BOLD}Staging $staged_count file(s)...${NC}"
+
+    for file in "${files_to_add[@]}"; do
+        echo -e "  ${GREEN}+${NC} $file"
+        git add "$file"
+    done
+
+    echo -e "\n${GREEN}Successfully staged $staged_count file(s)!${NC}"
+}
+
+# Main function
+main() {
+    # Check arguments
+    if [ $# -eq 0 ] || [ "$1" != "add" ]; then
+        show_usage
+    fi
+
+    # Check if in git repo
+    check_git_repo
+
+    # Parse git status
+    declare -a file_names
+    declare -a file_statuses
+    declare -a file_colors
+    declare -a selected
+    local total_files
+
+    parse_git_status
+
+    # Check if there are any changes
+    if [ $total_files -eq 0 ]; then
+        echo -e "${GREEN}No changes to stage. Working tree is clean.${NC}"
+        exit 0
+    fi
+
+    # Show interactive menu
+    interactive_select
+
+    # Stage selected files
+    stage_files
+}
+
+# Run main function
+main "$@"
