@@ -29,6 +29,8 @@ check_git_repo() {
     fi
 }
 
+
+
 # Get all changed files with their status
 get_changed_files() {
     # Get modified tracked files (exclude deleted)
