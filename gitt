@@ -198,41 +198,117 @@ stage_files() {
     echo -e "\n${GREEN}Successfully staged $staged_count file(s)!${NC}"
 }
 
+# Draw commit prompt menu
+draw_commit_menu() {
+    local current=$1
+    local message=$2
+
+    clear
+    echo -e "${BOLD}${BLUE}=== Commit Changes ===${NC}"
+    echo -e "${CYAN}Use ↑/↓ to navigate, Enter to select${NC}"
+    echo ""
+    echo -e "${BOLD}Commit message:${NC}"
+    if [ -z "$message" ]; then
+        echo -e "${YELLOW}(empty - click 'Edit message' to add)${NC}"
+    else
+        echo -e "\"${GREEN}$message${NC}\""
+    fi
+    echo ""
+
+    # Edit message option
+    if [ $current -eq 0 ]; then
+        echo -e "${BOLD}→ ${CYAN}[Edit message]${NC}"
+    else
+        echo -e "  ${CYAN}[Edit message]${NC}"
+    fi
+
+    # Commit option
+    if [ $current -eq 1 ]; then
+        echo -e "${BOLD}→ ${GREEN}[Commit]${NC}"
+    else
+        echo -e "  ${GREEN}[Commit]${NC}"
+    fi
+
+    # Skip option
+    if [ $current -eq 2 ]; then
+        echo -e "${BOLD}→ ${YELLOW}[Skip - exit without committing]${NC}"
+    else
+        echo -e "  ${YELLOW}[Skip - exit without committing]${NC}"
+    fi
+}
+
 # Prompt for commit
 prompt_commit() {
-    echo ""
-    echo -e "${BOLD}${BLUE}Would you like to commit these changes?${NC}"
-    echo -e "${CYAN}1) Yes - Enter commit message${NC}"
-    echo -e "${CYAN}2) No - Exit (files are staged)${NC}"
-    echo ""
+    local current=0
+    local commit_message=""
+    local key
+
+    # Hide cursor
+    tput civis
+
+    # Trap to restore cursor on exit
+    trap 'tput cnorm; exit' INT TERM EXIT
 
     while true; do
-        read -p "Select option (1 or 2): " choice
-        case $choice in
-            1)
-                echo ""
-                echo -e "${BOLD}Enter commit message:${NC}"
-                read -e commit_message
+        draw_commit_menu $current "$commit_message"
 
+        # Read single character
+        IFS= read -rsn1 key
+
+        # Handle arrow keys
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 key
+            case "$key" in
+                '[A') # Up arrow
+                    ((current--))
+                    if [ $current -lt 0 ]; then
+                        current=2
+                    fi
+                    ;;
+                '[B') # Down arrow
+                    ((current++))
+                    if [ $current -gt 2 ]; then
+                        current=0
+                    fi
+                    ;;
+            esac
+        elif [[ $key == "" ]]; then
+            # Enter key
+            if [ $current -eq 0 ]; then
+                # Edit message
+                tput cnorm
+                echo ""
+                echo -e "${BOLD}Enter commit message (or leave empty to cancel):${NC}"
+                read -e new_message
+                commit_message="$new_message"
+                tput civis
+            elif [ $current -eq 1 ]; then
+                # Commit
                 if [ -z "$commit_message" ]; then
-                    echo -e "${RED}Commit message cannot be empty. Skipping commit.${NC}"
+                    tput cnorm
+                    echo ""
+                    echo -e "${RED}Error: Commit message cannot be empty.${NC}"
+                    echo -e "${YELLOW}Please edit the message or skip.${NC}"
+                    sleep 2
+                    tput civis
+                else
+                    tput cnorm
+                    echo ""
+                    echo -e "${BOLD}Committing changes...${NC}"
+                    git commit -m "$commit_message"
+                    echo -e "${GREEN}Successfully committed!${NC}"
+                    trap - INT TERM EXIT
                     return
                 fi
-
+            elif [ $current -eq 2 ]; then
+                # Skip
+                tput cnorm
                 echo ""
-                echo -e "${BOLD}Committing changes...${NC}"
-                git commit -m "$commit_message"
-                echo -e "${GREEN}Successfully committed!${NC}"
-                return
-                ;;
-            2)
                 echo -e "${YELLOW}Skipping commit. Files are staged and ready.${NC}"
+                trap - INT TERM EXIT
                 return
-                ;;
-            *)
-                echo -e "${RED}Invalid option. Please select 1 or 2.${NC}"
-                ;;
-        esac
+            fi
+        fi
     done
 }
 

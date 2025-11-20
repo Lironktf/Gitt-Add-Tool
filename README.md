@@ -79,12 +79,18 @@ After selecting files and confirming:
 ```
 Successfully staged 2 file(s)!
 
-Would you like to commit these changes?
-1) Yes - Enter commit message
-2) No - Exit (files are staged)
+=== Commit Changes ===
+Use ↑/↓ to navigate, Enter to select
 
-Select option (1 or 2):
+Commit message:
+(empty - click 'Edit message' to add)
+
+→ [Edit message]
+  [Commit]
+  [Skip - exit without committing]
 ```
+
+Navigate with arrows and press Enter to edit the message, commit, or skip.
 
 Status indicators:
 - `M` = Modified file (shown in yellow)
